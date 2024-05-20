@@ -116,7 +116,7 @@
                         </div>
                         <button type="submit" class="btn btn-primary">Login</button>
                     </form>
-                    <div id="loginError" class="text-danger mt-3" style="display: none;">IF YOU wanna make a post on this page please contact the developer</div>
+                    <div id="loginError" class="text-danger mt-3" style="display: none;">Incorrect password. Please try again.</div>
                 </div>
             </div>
         </div>
@@ -162,7 +162,9 @@
             });
 
             writeNowBtn.addEventListener('click', function () {
-                writeNowModal.show();
+                if (authenticated) {
+                    writeNowModal.show();
+                }
             });
 
             postForm.addEventListener('submit', function (event) {
@@ -196,8 +198,10 @@
 
                 const deleteBtn = newPost.querySelector('.delete-btn');
                 deleteBtn.addEventListener('click', function () {
-                    newPost.remove();
-                    removePostFromLocalStorage(post);
+                    if (confirm('Are you sure you want to delete this post?')) {
+                        newPost.remove();
+                        removePostFromLocalStorage(post);
+                    }
                 });
 
                 if (authenticated) {
