@@ -38,6 +38,11 @@
         }
         .post-container h2 {
             color: #fff;
+            font-size: 1rem;
+        }
+        .post-container p.date {
+            font-size: 0.8rem;
+            color: #ccc;
         }
         .delete-btn {
             position: absolute;
@@ -131,6 +136,8 @@
             const postForm = document.getElementById('postForm');
             const postsContainer = document.getElementById('postsContainer');
 
+            let authenticated = false;
+
             // Load posts from localStorage
             loadPosts();
 
@@ -144,10 +151,10 @@
                 const password = document.getElementById('password').value;
 
                 if (password === '12345') {
+                    authenticated = true;
                     loginModal.hide();
                     writeNowBtn.classList.remove('d-none');
                     loginBtn.classList.add('d-none');
-                    localStorage.setItem('authenticated', 'true');
                     document.querySelectorAll('.delete-btn').forEach(btn => btn.classList.remove('d-none'));
                 } else {
                     loginError.style.display = 'block';
@@ -180,19 +187,21 @@
                 newPost.className = 'post-container';
                 newPost.innerHTML = `
                     <h2>${post.timestamp}</h2>
+                    <p class="date">Posted on ${post.timestamp}</p>
                     <p class="mt-3">${post.content}</p>
                     <button class="btn btn-danger delete-btn d-none">Delete</button>
                 `;
 
                 postsContainer.insertBefore(newPost, postsContainer.firstChild);
 
-                newPost.querySelector('.delete-btn').addEventListener('click', function () {
+                const deleteBtn = newPost.querySelector('.delete-btn');
+                deleteBtn.addEventListener('click', function () {
                     newPost.remove();
                     removePostFromLocalStorage(post);
                 });
 
-                if (localStorage.getItem('authenticated') === 'true') {
-                    newPost.querySelector('.delete-btn').classList.remove('d-none');
+                if (authenticated) {
+                    deleteBtn.classList.remove('d-none');
                 }
             }
 
