@@ -68,10 +68,13 @@
 <body>
     <header class="bg-dark text-white text-center py-5 d-flex justify-content-between align-items-center">
         <h1 id="usernameDisplay">UNKNOWN AUTHOR</h1>
-        <div>
+        <div class="dropdown">
             <button class="btn btn-primary" id="loginBtn">Login</button>
             <button class="btn btn-primary" id="registerBtn">Register</button>
-            <button class="btn btn-primary d-none" id="logoutBtn">Logout</button>
+            <button class="btn btn-primary d-none" id="logoutBtn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Logout</button>
+            <div class="dropdown-menu" aria-labelledby="logoutBtn">
+                <a class="dropdown-item" href="#" id="deleteAccountBtn">Delete Account</a>
+            </div>
         </div>
     </header>
     <main class="container my-5">
@@ -167,6 +170,30 @@
         </div>
     </div>
 
+    <!-- Modal for deleting account -->
+    <div class="modal fade" id="deleteAccountModal" tabindex="-1" aria-labelledby="deleteAccountModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteAccountModalLabel">Delete Account</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="deleteAccountForm">
+                        <div class="form-group">
+                            <label for="deleteAccountPassword">Password</label>
+                            <input type="password" class="form-control" id="deleteAccountPassword" required>
+                        </div>
+                        <button type="submit" class="btn btn-danger">Delete Account</button>
+                    </form>
+                    <div id="deleteAccountError" class="text-danger mt-3" style="display: none;">Incorrect password. Please try again.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
@@ -179,19 +206,25 @@
             const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
             const registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
             const writeNowModal = new bootstrap.Modal(document.getElementById('writeNowModal'));
+            const deleteAccountModal = new bootstrap.Modal(document.getElementById('deleteAccountModal'));
             const loginForm = document.getElementById('loginForm');
             const registerForm = document.getElementById('registerForm');
+            const deleteAccountForm = document.getElementById('deleteAccountForm');
             const loginError = document.getElementById('loginError');
             const registerError = document.getElementById('registerError');
+            const deleteAccountError = document.getElementById('deleteAccountError');
             const postForm = document.getElementById('postForm');
             const postsContainer = document.getElementById('postsContainer');
             const usernameDisplay = document.getElementById('usernameDisplay');
+            const deleteAccountBtn = document.getElementById('deleteAccountBtn');
 
             let authenticated = false;
             let currentUser = '';
+            let likedPosts = {};
 
-            // Load posts from localStorage
+            // Load posts and users from localStorage
             loadPosts();
+            loadLikedPosts();
 
             loginBtn.addEventListener('click', function () {
                 loginModal.show();
@@ -205,6 +238,10 @@
                 authenticated = false;
                 currentUser = '';
                 updateUI();
+            });
+
+            deleteAccountBtn.addEventListener('click', function () {
+                deleteAccountModal.show();
             });
 
             loginForm.addEventListener('submit', function (event) {
@@ -239,6 +276,28 @@
                     users.push({ username, password });
                     localStorage.setItem('users', JSON.stringify(users));
                     registerModal.hide();
+                }
+            });
+
+            deleteAccountForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+
+                const password = document.getElementById('deleteAccountPassword').value;
+                const users = getUsersFromLocalStorage();
+
+                const userIndex = users.findIndex(user => user.username === currentUser && user.password === password);
+
+                if (userIndex !== -1) {
+                    users.splice(userIndex, 1);
+                    localStorage.setItem('users', JSON.stringify(users));
+
+                    deleteUserPosts(currentUser);
+                    authenticated = false;
+                    currentUser = '';
+                    deleteAccountModal.hide();
+                    updateUI();
+                } else {
+                    deleteAccountError.style.display = 'block';
                 }
             });
 
@@ -302,9 +361,15 @@
                 const likeIcon = newPost.querySelector('.like-icon');
                 likeIcon.addEventListener('click', function () {
                     if (authenticated) {
-                        post.likes++;
-                        likeIcon.textContent = ` ${post.likes}`;
-                        updatePostInLocalStorage(post);
+                        if (!likedPosts[post.timestamp]) {
+                            post.likes++;
+                            likeIcon.textContent = ` ${post.likes}`;
+                            likedPosts[post.timestamp] = true;
+                            updateLikedPostsInLocalStorage();
+                            updatePostInLocalStorage(post);
+                        } else {
+                            alert('You have already liked this post.');
+                        }
                     } else {
                         alert('You must be logged in to like a post.');
                     }
@@ -343,9 +408,24 @@
                 localStorage.setItem('posts', JSON.stringify(posts));
             }
 
+            function deleteUserPosts(username) {
+                const posts = getPostsFromLocalStorage().filter(post => post.author !== username);
+                localStorage.setItem('posts', JSON.stringify(posts));
+                postsContainer.innerHTML = '';
+                posts.forEach(post => addPostToDOM(post));
+            }
+
             function loadPosts() {
                 const posts = getPostsFromLocalStorage();
                 posts.forEach(post => addPostToDOM(post));
+            }
+
+            function loadLikedPosts() {
+                likedPosts = JSON.parse(localStorage.getItem('likedPosts')) || {};
+            }
+
+            function updateLikedPostsInLocalStorage() {
+                localStorage.setItem('likedPosts', JSON.stringify(likedPosts));
             }
 
             function getUsersFromLocalStorage() {
