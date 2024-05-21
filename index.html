@@ -63,35 +63,9 @@
             border-top: 1px solid #e4e5e6;
             padding: 1rem 0;
         }
-        #sideMenu {
-            height: 100%;
-            width: 0;
-            position: fixed;
-            z-index: 1;
-            top: 0;
+        .dropdown-menu-right {
             right: 0;
-            background-color: #111;
-            overflow-x: hidden;
-            transition: 0.5s;
-            padding-top: 60px;
-        }
-        #sideMenu a {
-            padding: 8px 8px 8px 32px;
-            text-decoration: none;
-            font-size: 25px;
-            color: #818181;
-            display: block;
-            transition: 0.3s;
-        }
-        #sideMenu a:hover {
-            color: #f1f1f1;
-        }
-        #sideMenu .closebtn {
-            position: absolute;
-            top: 0;
-            right: 25px;
-            font-size: 36px;
-            margin-left: 50px;
+            left: auto;
         }
     </style>
 </head>
@@ -101,7 +75,12 @@
         <div class="dropdown">
             <button class="btn btn-primary" id="loginBtn">Login</button>
             <button class="btn btn-primary" id="registerBtn">Register</button>
-            <button class="btn btn-primary d-none" id="logoutBtn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Logout</button>
+            <div class="btn-group">
+                <button class="btn btn-primary d-none" id="logoutBtn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Logout</button>
+                <div class="dropdown-menu dropdown-menu-right">
+                    <a class="dropdown-item" href="#" id="deleteAccountBtn">Delete Account</a>
+                </div>
+            </div>
         </div>
     </header>
     <main class="container my-5">
@@ -221,15 +200,7 @@
         </div>
     </div>
 
-    <!-- Side menu -->
-    <div id="sideMenu" class="sidenav">
-        <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
-        <a href="#" id="deleteAccountBtn">Delete Account</a>
-    </div>
-
-    <button onclick="openNav()" style="position:fixed;bottom:20px;right:20px;">&#9776; Menu</button>
-
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
@@ -246,128 +217,127 @@
         function displayPosts() {
             const postsContainer = document.getElementById('postsContainer');
             postsContainer.innerHTML = '';
+
             posts.forEach((post, index) => {
                 const postElement = document.createElement('div');
                 postElement.className = 'post-container';
                 postElement.innerHTML = `
+                    <p class="date">${post.date}</p>
                     <p>${post.content}</p>
-                    <p class="date">Posted on ${post.date}</p>
-                    ${currentUser === post.author ? `<button class="btn btn-danger btn-sm delete-btn" onclick="deletePost(${index})">Delete</button>` : ''}
                     <div class="icons">
-                        <i class="fa ${users[currentUser]?.likedPosts?.includes(index) ? 'fa-thumbs-up' : 'fa-thumbs-o-up'}" onclick="toggleLike(${index})"></i>
+                        <i class="fa fa-edit" onclick="editPost(${index})"></i>
+                        <i class="fa fa-trash" onclick="deletePost(${index})"></i>
                     </div>
                 `;
                 postsContainer.appendChild(postElement);
             });
         }
 
-        function toggleLike(postIndex) {
-            if (!currentUser) {
-                alert('You need to be logged in to like posts.');
-                return;
-            }
-            if (!users[currentUser].likedPosts) {
-                users[currentUser].likedPosts = [];
-            }
-            const likedPosts = users[currentUser].likedPosts;
-            const postLiked = likedPosts.includes(postIndex);
-            if (postLiked) {
-                users[currentUser].likedPosts = likedPosts.filter(index => index !== postIndex);
+        function toggleAuthButtons() {
+            const loginBtn = document.getElementById('loginBtn');
+            const registerBtn = document.getElementById('registerBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const writeNowBtn = document.getElementById('writeNowBtn');
+            const usernameDisplay = document.getElementById('usernameDisplay');
+
+            if (currentUser) {
+                loginBtn.classList.add('d-none');
+                registerBtn.classList.add('d-none');
+                logoutBtn.classList.remove('d-none');
+                writeNowBtn.classList.remove('d-none');
+                usernameDisplay.textContent = currentUser;
             } else {
-                users[currentUser].likedPosts.push(postIndex);
-            }
-            saveData();
-            displayPosts();
-        }
-
-        function deletePost(index) {
-            if (confirm('Are you sure you want to delete this post?')) {
-                posts.splice(index, 1);
-                saveData();
-                displayPosts();
+                loginBtn.classList.remove('d-none');
+                registerBtn.classList.remove('d-none');
+                logoutBtn.classList.add('d-none');
+                writeNowBtn.classList.add('d-none');
+                usernameDisplay.textContent = 'UNKNOWN AUTHOR';
             }
         }
 
-        function openNav() {
-            document.getElementById("sideMenu").style.width = "250px";
-        }
-
-        function closeNav() {
-            document.getElementById("sideMenu").style.width = "0";
-        }
-
-        document.getElementById('deleteAccountBtn').addEventListener('click', () => {
-            $('#deleteAccountModal').modal('show');
-        });
-
-        document.getElementById('deleteAccountForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const password = document.getElementById('deleteAccountPassword').value;
-            if (users[currentUser].password === password) {
-                delete users[currentUser];
-                currentUser = null;
-                saveData();
-                location.reload();
-            } else {
-                document.getElementById('deleteAccountError').style.display = 'block';
-            }
-        });
-
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
             e.preventDefault();
             const username = document.getElementById('loginUsername').value;
             const password = document.getElementById('loginPassword').value;
-            if (users[username] && users[username].password === password) {
+
+            if (users[username] && users[username] === password) {
                 currentUser = username;
                 saveData();
-                location.reload();
+                toggleAuthButtons();
+                $('#loginModal').modal('hide');
             } else {
                 document.getElementById('loginError').style.display = 'block';
             }
         });
 
-        document.getElementById('registerForm').addEventListener('submit', function(e) {
+        document.getElementById('registerForm').addEventListener('submit', (e) => {
             e.preventDefault();
             const username = document.getElementById('registerUsername').value;
             const password = document.getElementById('registerPassword').value;
+
             if (users[username]) {
                 document.getElementById('registerError').style.display = 'block';
             } else {
-                users[username] = { password: password, likedPosts: [] };
+                users[username] = password;
                 currentUser = username;
                 saveData();
-                location.reload();
+                toggleAuthButtons();
+                $('#registerModal').modal('hide');
             }
         });
 
-        document.getElementById('postForm').addEventListener('submit', function(e) {
+        document.getElementById('deleteAccountForm').addEventListener('submit', (e) => {
             e.preventDefault();
-            const content = document.getElementById('postContent').value;
-            const date = new Date().toLocaleString();
-            posts.push({ content: content, date: date, author: currentUser });
-            saveData();
-            $('#writeNowModal').modal('hide');
-            displayPosts();
+            const password = document.getElementById('deleteAccountPassword').value;
+
+            if (users[currentUser] && users[currentUser] === password) {
+                delete users[currentUser];
+                currentUser = null;
+                saveData();
+                toggleAuthButtons();
+                $('#deleteAccountModal').modal('hide');
+            } else {
+                document.getElementById('deleteAccountError').style.display = 'block';
+            }
         });
 
-        document.getElementById('logoutBtn').addEventListener('click', function() {
+        document.getElementById('logoutBtn').addEventListener('click', () => {
             currentUser = null;
             saveData();
-            location.reload();
+            toggleAuthButtons();
         });
 
-        document.getElementById('writeNowBtn').addEventListener('click', function() {
+        document.getElementById('writeNowBtn').addEventListener('click', () => {
             $('#writeNowModal').modal('show');
         });
 
-        if (currentUser) {
-            document.getElementById('usernameDisplay').innerText = currentUser;
-            document.getElementById('loginBtn').classList.add('d-none');
-            document.getElementById('registerBtn').classList.add('d-none');
-            document.getElementById('logoutBtn').classList.remove('d-none');
-            document.getElementById('writeNowBtn').classList.remove('d-none');
+        document.getElementById('postForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const content = document.getElementById('postContent').value;
+
+            const post = {
+                content,
+                date: new Date().toLocaleString()
+            };
+
+            posts.push(post);
+            saveData();
+            displayPosts();
+            $('#writeNowModal').modal('hide');
+        });
+
+        function editPost(index) {
+            // Logic to edit the post
         }
 
+        function deletePost(index) {
+            posts.splice(index, 1);
+            saveData();
+            displayPosts();
+        }
+
+        // Initial setup
+        toggleAuthButtons();
         displayPosts();
     </script>
 </body>
