@@ -13,6 +13,9 @@
         header {
             background-color: #8B0000;
             padding: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .btn-primary {
             background-color: #333;
@@ -63,13 +66,17 @@
     </style>
 </head>
 <body>
-    <header class="bg-dark text-white text-center py-5">
-        <h1>UNKNOWN AUTHOR</h1>
+    <header class="bg-dark text-white text-center py-5 d-flex justify-content-between align-items-center">
+        <h1 id="usernameDisplay">UNKNOWN AUTHOR</h1>
+        <div>
+            <button class="btn btn-primary" id="loginBtn">Login</button>
+            <button class="btn btn-primary" id="registerBtn">Register</button>
+            <button class="btn btn-primary d-none" id="logoutBtn">Logout</button>
+        </div>
     </header>
     <main class="container my-5">
         <div class="row">
             <div class="col-md-12 text-center mb-4">
-                <button class="btn btn-primary" id="loginBtn">Login</button>
                 <button class="btn btn-primary d-none" id="writeNowBtn">Write Now</button>
             </div>
             <div class="col-md-12" id="postsContainer">
@@ -117,12 +124,44 @@
                 <div class="modal-body">
                     <form id="loginForm">
                         <div class="form-group">
-                            <label for="password">Password</label>
-                            <input type="password" class="form-control" id="password" required>
+                            <label for="loginUsername">Username</label>
+                            <input type="text" class="form-control" id="loginUsername" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="loginPassword">Password</label>
+                            <input type="password" class="form-control" id="loginPassword" required>
                         </div>
                         <button type="submit" class="btn btn-primary">Login</button>
                     </form>
-                    <div id="loginError" class="text-danger mt-3" style="display: none;">Incorrect password. Please try again.</div>
+                    <div id="loginError" class="text-danger mt-3" style="display: none;">Incorrect username or password. Please try again.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for registration -->
+    <div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="registerModalLabel">Register</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="registerForm">
+                        <div class="form-group">
+                            <label for="registerUsername">Username</label>
+                            <input type="text" class="form-control" id="registerUsername" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="registerPassword">Password</label>
+                            <input type="password" class="form-control" id="registerPassword" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Register</button>
+                    </form>
+                    <div id="registerError" class="text-danger mt-3" style="display: none;">Username already exists. Please try a different one.</div>
                 </div>
             </div>
         </div>
@@ -134,15 +173,22 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const loginBtn = document.getElementById('loginBtn');
+            const registerBtn = document.getElementById('registerBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
             const writeNowBtn = document.getElementById('writeNowBtn');
             const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+            const registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
             const writeNowModal = new bootstrap.Modal(document.getElementById('writeNowModal'));
             const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
             const loginError = document.getElementById('loginError');
+            const registerError = document.getElementById('registerError');
             const postForm = document.getElementById('postForm');
             const postsContainer = document.getElementById('postsContainer');
+            const usernameDisplay = document.getElementById('usernameDisplay');
 
             let authenticated = false;
+            let currentUser = '';
 
             // Load posts from localStorage
             loadPosts();
@@ -151,19 +197,48 @@
                 loginModal.show();
             });
 
+            registerBtn.addEventListener('click', function () {
+                registerModal.show();
+            });
+
+            logoutBtn.addEventListener('click', function () {
+                authenticated = false;
+                currentUser = '';
+                updateUI();
+            });
+
             loginForm.addEventListener('submit', function (event) {
                 event.preventDefault();
                 
-                const password = document.getElementById('password').value;
+                const username = document.getElementById('loginUsername').value;
+                const password = document.getElementById('loginPassword').value;
+                const users = getUsersFromLocalStorage();
 
-                if (password === '12345') {
+                const user = users.find(user => user.username === username && user.password === password);
+                
+                if (user) {
                     authenticated = true;
+                    currentUser = username;
                     loginModal.hide();
-                    writeNowBtn.classList.remove('d-none');
-                    loginBtn.classList.add('d-none');
-                    document.querySelectorAll('.delete-btn').forEach(btn => btn.classList.remove('d-none'));
+                    updateUI();
                 } else {
                     loginError.style.display = 'block';
+                }
+            });
+
+            registerForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+                
+                const username = document.getElementById('registerUsername').value;
+                const password = document.getElementById('registerPassword').value;
+                const users = getUsersFromLocalStorage();
+
+                if (users.find(user => user.username === username)) {
+                    registerError.style.display = 'block';
+                } else {
+                    users.push({ username, password });
+                    localStorage.setItem('users', JSON.stringify(users));
+                    registerModal.hide();
                 }
             });
 
@@ -181,7 +256,8 @@
                 const post = {
                     content: postContent,
                     timestamp: new Date().toLocaleString(),
-                    likes: 0
+                    likes: 0,
+                    author: currentUser
                 };
 
                 addPostToDOM(post);
@@ -191,11 +267,29 @@
                 postForm.reset();
             });
 
+            function updateUI() {
+                if (authenticated) {
+                    writeNowBtn.classList.remove('d-none');
+                    loginBtn.classList.add('d-none');
+                    registerBtn.classList.add('d-none');
+                    logoutBtn.classList.remove('d-none');
+                    usernameDisplay.textContent = currentUser;
+                    document.querySelectorAll('.delete-btn').forEach(btn => btn.classList.remove('d-none'));
+                } else {
+                    writeNowBtn.classList.add('d-none');
+                    loginBtn.classList.remove('d-none');
+                    registerBtn.classList.remove('d-none');
+                    logoutBtn.classList.add('d-none');
+                    usernameDisplay.textContent = 'UNKNOWN AUTHOR';
+                    document.querySelectorAll('.delete-btn').forEach(btn => btn.classList.add('d-none'));
+                }
+            }
+
             function addPostToDOM(post) {
                 const newPost = document.createElement('div');
                 newPost.className = 'post-container';
                 newPost.innerHTML = `
-                    <p class="date">Posted on ${post.timestamp}</p>
+                    <p class="date">Posted on ${post.timestamp} by ${post.author}</p>
                     <p class="mt-3">${post.content}</p>
                     <div class="icons">
                         <i class="fa fa-heart like-icon" aria-hidden="true"> ${post.likes}</i>
@@ -207,9 +301,13 @@
 
                 const likeIcon = newPost.querySelector('.like-icon');
                 likeIcon.addEventListener('click', function () {
-                    post.likes++;
-                    likeIcon.textContent = ` ${post.likes}`;
-                    updatePostInLocalStorage(post);
+                    if (authenticated) {
+                        post.likes++;
+                        likeIcon.textContent = ` ${post.likes}`;
+                        updatePostInLocalStorage(post);
+                    } else {
+                        alert('You must be logged in to like a post.');
+                    }
                 });
 
                 const deleteBtn = newPost.querySelector('.delete-btn');
@@ -248,6 +346,10 @@
             function loadPosts() {
                 const posts = getPostsFromLocalStorage();
                 posts.forEach(post => addPostToDOM(post));
+            }
+
+            function getUsersFromLocalStorage() {
+                return JSON.parse(localStorage.getItem('users')) || [];
             }
         });
     </script>
