@@ -328,31 +328,25 @@
 
             function updateUI() {
                 if (authenticated) {
-    writeNowBtn.classList.remove('d-none');
-    loginBtn.classList.add('d-none');
-    registerBtn.classList.add('d-none');
-    logoutBtn.classList.remove('d-none');
-    usernameDisplay.textContent = currentUser;
-    document.querySelectorAll('.delete-btn').forEach(btn => btn.classList.remove('d-none'));
-
-    const deleteAccountDropdownItem = document.createElement('a');
-    deleteAccountDropdownItem.classList.add('dropdown-item');
-    deleteAccountDropdownItem.href = '#';
-    deleteAccountDropdownItem.textContent = 'Delete Your Account';
-    deleteAccountDropdownItem.addEventListener('click', function () {
-        deleteAccountModal.show();
-    });
-    document.querySelector('.dropdown-menu').appendChild(deleteAccountDropdownItem);
-} else {
-    writeNowBtn.classList.add('d-none');
-    loginBtn.classList.remove('d-none');
-    registerBtn.classList.remove('d-none');
-    logoutBtn.classList.add('d-none');
-    usernameDisplay.textContent = 'UNKNOWN AUTHOR';
-    document.querySelectorAll('.delete-btn').forEach(btn => btn.classList.add('d-none'));
-}
+                    writeNowBtn.classList.remove('d-none');
+                    loginBtn.classList.add('d-none');
+                    registerBtn.classList.add('d-none');
+                    logoutBtn.classList.remove('d-none');
+                    usernameDisplay.textContent = currentUser;
+                    document.querySelectorAll('.post-container').forEach(post => {
+                        if (post.querySelector('.date').textContent.includes(currentUser)) {
+                            post.querySelector('.delete-btn').classList.remove('d-none');
+                        }
+                    });
+                } else {
+                    writeNowBtn.classList.add('d-none');
+                    loginBtn.classList.remove('d-none');
+                    registerBtn.classList.remove('d-none');
+                    logoutBtn.classList.add('d-none');
+                    usernameDisplay.textContent = 'UNKNOWN AUTHOR';
+                    document.querySelectorAll('.delete-btn').forEach(btn => btn.classList.add('d-none'));
+                }
             }
-
 
             function addPostToDOM(post) {
                 const newPost = document.createElement('div');
@@ -393,7 +387,7 @@
                     }
                 });
 
-                if (authenticated) {
+                if (authenticated && post.author === currentUser) {
                     deleteBtn.classList.remove('d-none');
                 }
             }
