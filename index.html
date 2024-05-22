@@ -320,19 +320,6 @@
                 }
             }
 
-            function likePost(index) {
-                if (!likes[currentUser]) {
-                    likes[currentUser] = [];
-                }
-                if (!likes[currentUser].includes(index)) {
-                    posts[index].likes = (posts[index].likes || 0) + 1;
-                    likes[currentUser].push(index);
-                    localStorage.setItem('posts', JSON.stringify(posts));
-                    localStorage.setItem('likes', JSON.stringify(likes));
-                    displayPosts();
-                }
-            }
-
             loginForm.addEventListener('submit', function (e) {
                 e.preventDefault();
                 const username = document.getElementById('loginUsername').value;
